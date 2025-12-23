@@ -105,6 +105,9 @@ function checkTokens() {
   }
 }
 
+// Disable GPU sandbox for WSL2/wslg compatibility
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+
 app.whenReady().then(() => {
   // Check process arguments
   const p = new Promise<void>((resolve, _) => {
