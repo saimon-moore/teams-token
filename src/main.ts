@@ -15,14 +15,17 @@ const TEAMS_APP_ID = '5e3ce6c0-2b1f-4285-8d4b-75ee78787346';
 const SKYPE_RESOURCE = 'https://api.spaces.skype.com';
 const CHAT_SVC_AGG_RESOURCE = 'https://chatsvcagg.teams.microsoft.com';
 const GRAPH_RESOURCE = 'https://graph.microsoft.com';
+const GRAPH_APP_ID = '00000003-0000-0000-c000-000000000000';
 const GRAPH_CALENDAR_SCOPE = 'https://graph.microsoft.com/Calendars.Read';
 const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) MicrosoftTeams-Preview/1.4.00.7556 Chrome/80.0.3987.163 Electron/8.5.5 Safari/537.36';
+const MAX_TOKEN_REDIRECTS = 7;
 
 type TeamsSkype = 'teams' | 'skype' | 'chatsvcagg' | 'graph';
 
 let win : BrowserWindow | null = null;
 let tokenResponseCount = 0;
 let currentTenant : (string | null) = null;
+let requestedTokenType : TeamsSkype = 'teams';
 
 const tokens : Record<TeamsSkype, boolean> = {
   teams: false,
@@ -76,6 +79,7 @@ function getLoginURL(type: TeamsSkype, tenantId: string) : string {
 }
 
 function authorize(type: TeamsSkype, tenantId: string) {
+  requestedTokenType = type;
   console.log(`Authorizing ${type} with tenantId=${tenantId}`);
   win.loadURL(getLoginURL(type, tenantId), {
     userAgent: USER_AGENT,
@@ -110,10 +114,14 @@ function getTenants(token: string) : Promise<AxiosResponse<Tenant[]>> {
 
 // Verifies that we've got all tokens
 function checkTokens() {
-  if (tokens.chatsvcagg && tokens.skype && tokens.teams) {
+  if (tokens.chatsvcagg && tokens.graph && tokens.skype && tokens.teams) {
     win.destroy();
     app.quit();
   }
+}
+
+function isGraphAudience(audience: unknown): boolean {
+  return audience === GRAPH_RESOURCE || audience === GRAPH_APP_ID;
 }
 
 // Disable GPU sandbox for WSL2/wslg compatibility
@@ -170,7 +178,7 @@ app.whenReady().then(() => {
           if (searchParams.has('error')) {
             const err = searchParams.get('error');
             const errDesc = searchParams.get('error_description');
-            console.error(`Got error = ${err}: ${errDesc}`);
+            console.error(`Got ${requestedTokenType} auth error = ${err}: ${errDesc}`);
             switch (err) {
               case 'interaction_required':
                 // User has to interact!
@@ -216,7 +224,7 @@ app.whenReady().then(() => {
 
         tokenResponseCount += 1;
 
-        if (tokenResponseCount > 5) {
+        if (tokenResponseCount > MAX_TOKEN_REDIRECTS) {
           console.error('Redirecting too many times, stopping');
           e.preventDefault();
           win.webContents.stop();
@@ -244,7 +252,13 @@ app.whenReady().then(() => {
         } else if (decoded.aud === CHAT_SVC_AGG_RESOURCE) {
           console.log('Got a ChatSvcAgg token');
           saveTeamsToken(teamsToken, 'chatsvcagg');
+          authorize('graph', currentTenant);
           tokens.chatsvcagg = true;
+          checkTokens();
+        } else if (isGraphAudience(decoded.aud)) {
+          console.log('Got a Graph token');
+          saveTeamsToken(teamsToken, 'graph');
+          tokens.graph = true;
           checkTokens();
         } else {
           console.error(`Invalid audience ${decoded.aud} found.`);
