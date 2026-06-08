@@ -9,14 +9,38 @@ permissions:
   contents: write
 
 jobs:
-  publish:
+  prepare-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create draft release once
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --draft --title "$GITHUB_REF_NAME" --notes ""
+
+  build:
+    needs: prepare-release
     strategy:
       matrix:
         include:
           - os: macos-latest
-            args: --mac --publish always
+            args: --mac --publish never
+            artifact_name: macos
+            artifact_paths: |
+              release/*.dmg
+              release/*.dmg.blockmap
+              release/*.zip
+              release/*.zip.blockmap
+              release/latest-mac.yml
           - os: ubuntu-latest
-            args: --linux --publish always
+            args: --linux --publish never
+            artifact_name: linux
+            artifact_paths: |
+              release/*.AppImage
+              release/*.tar.gz
+              release/latest-linux.yml
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -35,7 +59,34 @@ jobs:
       - name: Build TypeScript
         run: yarn build
 
-      - name: Package and publish release assets
+      - name: Package release assets
         run: npx electron-builder ${{ matrix.args }}
+
+      - name: Upload packaged assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_paths }}
+          if-no-files-found: error
+
+  publish-release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download packaged assets
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Upload all assets to the draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          find release-assets -type f -print0 | \
+            xargs -0 gh release upload "$GITHUB_REF_NAME" --clobber
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --title "$GITHUB_REF_NAME"
