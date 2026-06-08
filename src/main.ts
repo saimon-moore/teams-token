@@ -14,6 +14,8 @@ const MICROSOFT_TENANT_ID = 'f8cdef31-a31e-4b4a-93e4-5f571e91255a';
 const TEAMS_APP_ID = '5e3ce6c0-2b1f-4285-8d4b-75ee78787346';
 const SKYPE_RESOURCE = 'https://api.spaces.skype.com';
 const CHAT_SVC_AGG_RESOURCE = 'https://chatsvcagg.teams.microsoft.com';
+const GRAPH_RESOURCE = 'https://graph.microsoft.com';
+const GRAPH_CALENDAR_SCOPE = 'https://graph.microsoft.com/Calendars.Read';
 const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) MicrosoftTeams-Preview/1.4.00.7556 Chrome/80.0.3987.163 Electron/8.5.5 Safari/537.36';
 
 type TeamsSkype = 'teams' | 'skype' | 'chatsvcagg' | 'graph';
@@ -31,7 +33,9 @@ const tokens : Record<TeamsSkype, boolean> = {
 
 function getLoginURL(type: TeamsSkype, tenantId: string) : string {
   const loginUrl = new URL('https://login.microsoftonline.com');
-  loginUrl.pathname = `/${tenantId}/oauth2/authorize`;
+  loginUrl.pathname = type === 'graph'
+    ? `/${tenantId}/oauth2/v2.0/authorize`
+    : `/${tenantId}/oauth2/authorize`;
 
   const state = uuidv4();
   switch (type) {
@@ -50,6 +54,12 @@ function getLoginURL(type: TeamsSkype, tenantId: string) : string {
       loginUrl.searchParams.append('response_type', 'token');
       loginUrl.searchParams.append('state', `${state}|${CHAT_SVC_AGG_RESOURCE}`);
       loginUrl.searchParams.append('resource', CHAT_SVC_AGG_RESOURCE);
+      break;
+
+    case 'graph':
+      loginUrl.searchParams.append('response_type', 'token');
+      loginUrl.searchParams.append('state', `${state}|${GRAPH_RESOURCE}`);
+      loginUrl.searchParams.append('scope', GRAPH_CALENDAR_SCOPE);
       break;
 
     default:
