@@ -2,18 +2,55 @@
   "name": "teams-token",
   "version": "1.0.0",
   "description": "Get your MS Teams token easily",
-  "main": "index.js",
+  "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
     "lint": "eslint -c .eslintrc --ext .ts ./src",
-    "start": "yarn run build && electron ./dist/main.js"
+    "start": "yarn run build && electron ./dist/main.js",
+    "package": "yarn build && electron-builder",
+    "package:linux": "yarn build && electron-builder --linux",
+    "package:mac": "yarn build && electron-builder --mac"
   },
   "author": "Denys Vitali",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:saimon-moore/teams-token.git"
+  },
+  "build": {
+    "appId": "com.fossteams.token",
+    "productName": "teams-token",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "saimon-moore",
+        "repo": "teams-token"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ]
+    }
+  },
   "dependencies": {
     "axios": "^0.21.1",
-    "electron": "^12.0.2",
     "jsonwebtoken": "^8.5.1",
     "uuid": "^8.3.2"
   },
@@ -26,6 +63,8 @@
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-react": "^7.23.1",
+    "electron": "^12.0.2",
+    "electron-builder": "25.1.8",
     "typescript": "^4.2.3"
   }
 }
