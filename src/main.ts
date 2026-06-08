@@ -16,7 +16,7 @@ const SKYPE_RESOURCE = 'https://api.spaces.skype.com';
 const CHAT_SVC_AGG_RESOURCE = 'https://chatsvcagg.teams.microsoft.com';
 const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) MicrosoftTeams-Preview/1.4.00.7556 Chrome/80.0.3987.163 Electron/8.5.5 Safari/537.36';
 
-type TeamsSkype = 'teams' | 'skype' | 'chatsvcagg';
+type TeamsSkype = 'teams' | 'skype' | 'chatsvcagg' | 'graph';
 
 let win : BrowserWindow | null = null;
 let tokenResponseCount = 0;
@@ -26,6 +26,7 @@ const tokens : Record<TeamsSkype, boolean> = {
   teams: false,
   chatsvcagg: false,
   skype: false,
+  graph: false,
 };
 
 function getLoginURL(type: TeamsSkype, tenantId: string) : string {
