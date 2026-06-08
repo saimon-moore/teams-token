@@ -13,7 +13,7 @@ yarn start
 
 ### Get your token
 
-```
+```bash
 yarn start
 ```
 
@@ -21,15 +21,33 @@ yarn start
 
 **Warning:** this operation _doesn't_ delete / invalidate your token, but simply clears the cookies of the Electron browser.
 
-```
+```bash
 yarn start logout
 ```
 
 ### Get login URL
 
-```
+```bash
 yarn start get-url
 ```
+
+## Release
+
+Run a local packaging smoke test before cutting a release:
+
+```bash
+yarn package --linux dir --publish never
+```
+
+Publish a release tag from a clean worktree:
+
+```bash
+yarn release v1.0.1
+```
+
+This command bumps the app version, creates a release commit and git tag, and pushes both. GitHub Actions then builds macOS and Linux binaries and uploads them to the matching GitHub Release.
+
+The first release flow ships unsigned macOS artifacts, so Gatekeeper warnings are expected on download or first launch.
 
 ## Note
 
